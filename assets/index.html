@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ZedgeHost Expenses Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: #F4F6FB; color: #0F172A; padding-bottom: 90px; }
+  header { background: #0033C6; color: #fff; padding: 18px 16px 14px; }
+  header h1 { font-size: 20px; }
+  header p { font-size: 12px; opacity: .85; margin-top: 2px; }
+  .wrap { padding: 14px 14px 0; max-width: 640px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
+  .total-big { font-size: 30px; font-weight: 800; color: #0033C6; }
+  .label { font-size: 12px; color: #64748B; text-transform: uppercase; letter-spacing: .5px; }
+  .row { display: flex; gap: 10px; }
+  .row .card { flex: 1; }
+  .cat-amount { font-size: 18px; font-weight: 700; }
+  .cat-name { font-size: 13px; color: #334155; }
+  .cat-ads { border-left: 4px solid #FFA726; }
+  .cat-server { border-left: 4px solid #0033C6; }
+  .cat-other { border-left: 4px solid #2A862E; }
+  h2 { font-size: 16px; margin: 4px 0 10px; }
+  form label { display: block; font-size: 13px; color: #475569; margin: 10px 0 4px; }
+  form input, form select { width: 100%; padding: 11px 10px; font-size: 16px; border: 1px solid #CBD5E1; border-radius: 8px; background: #fff; color: #0F172A; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; }
+  .check input { width: auto; }
+  button { border: 0; border-radius: 8px; font-size: 16px; font-weight: 700; padding: 12px 16px; cursor: pointer; }
+  .btn-primary { background: #0033C6; color: #fff; width: 100%; margin-top: 14px; }
+  .btn-secondary { background: #E2E8F0; color: #0F172A; }
+  .entry { display: flex; justify-content: space-between; gap: 10px; padding: 12px 2px; border-bottom: 1px solid #E2E8F0; }
+  .entry:last-child { border-bottom: 0; }
+  .entry .amt { font-weight: 700; white-space: nowrap; }
+  .entry .meta { font-size: 13px; color: #64748B; margin-top: 2px; }
+  .entry .note { font-size: 13px; color: #334155; margin-top: 2px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 20px; margin-left: 6px; vertical-align: middle; }
+  .badge-ads { background: #FFF3E0; color: #B45309; }
+  .badge-server { background: #EAF0FF; color: #0033C6; }
+  .badge-other { background: #E6F4EA; color: #2A862E; }
+  .badge-recur { background: #F1F5F9; color: #475569; }
+  .actions { display: flex; gap: 6px; align-items: flex-start; }
+  .actions button { padding: 6px 10px; font-size: 13px; border-radius: 6px; }
+  .btn-edit { background: #EAF0FF; color: #0033C6; }
+  .btn-del { background: #FEE2E2; color: #B91C1C; }
+  .month-row { display: flex; justify-content: space-between; padding: 8px 2px; border-bottom: 1px solid #E2E8F0; font-size: 15px; }
+  .month-row:last-child { border-bottom: 0; }
+  .month-row b { font-weight: 700; }
+  .note-small { font-size: 12px; color: #64748B; margin-top: 8px; line-height: 1.5; }
+  .empty { text-align: center; color: #64748B; padding: 18px 0; font-size: 14px; }
+  .form-actions { display: flex; gap: 10px; }
+  .form-actions .btn-primary { flex: 1; }
+  #cancelBtn { display: none; }
+  .fab { position: fixed; bottom: 18px; right: 18px; width: 56px; height: 56px; border-radius: 50%; background: #0033C6; color: #fff; font-size: 30px; line-height: 1; box-shadow: 0 4px 12px rgba(0,51,198,.4); }
+</style>
+</head>
+<body>
+<header>
+  <h1>ZedgeHost Expenses Tracker</h1>
+  <p>Startup kharchay &middot; sab kuch is phone par save hota hai, offline kaam karta hai</p>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="label">Total kharcha (sab)</div>
+    <div class="total-big" id="totalAll">Rs 0</div>
+    <div class="label" style="margin-top:6px" id="entryCount"></div>
+  </div>
+
+  <div class="row">
+    <div class="card cat-ads"><div class="cat-name">Ads</div><div class="cat-amount" id="totalAds">Rs 0</div></div>
+    <div class="card cat-server"><div class="cat-name">Server</div><div class="cat-amount" id="totalServer">Rs 0</div></div>
+    <div class="card cat-other"><div class="cat-name">Other</div><div class="cat-amount" id="totalOther">Rs 0</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Mahina ke hisaab se</h2>
+    <div id="monthList"></div>
+  </div>
+
+  <div class="card" id="formCard">
+    <h2 id="formTitle">Naya kharcha add karein</h2>
+    <form id="expenseForm" onsubmit="return saveExpense(event)">
+      <label>Date</label>
+      <input type="date" id="fDate" required>
+      <label>Category</label>
+      <select id="fCat">
+        <option value="Ads">Ads</option>
+        <option value="Server">Server</option>
+        <option value="Other">Other</option>
+      </select>
+      <label>Amount (PKR)</label>
+      <input type="number" id="fAmount" min="0" step="0.01" placeholder="e.g. 850" required>
+      <label>Note</label>
+      <input type="text" id="fNote" placeholder="e.g. Meta Ads 15 Nov" maxlength="120">
+      <label class="check"><input type="checkbox" id="fRecur"> Har mahine recurring hai</label>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" id="saveBtn">Add Expense</button>
+        <button type="button" class="btn-secondary" id="cancelBtn" onclick="cancelEdit()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Saare kharchay</h2>
+    <div id="entryList"></div>
+    <p class="note-small">Ads Manager ka flight total 15 Nov subah Rs 1,831.89 tha; upar daily rows ka total Rs 1,829.46 hai (chhota rounding farq). Daily rows jaisi darj hain waisi hi dikhai gayi hain.</p>
+  </div>
+</div>
+
+<button class="fab" onclick="scrollToForm()" aria-label="Add expense">+</button>
+
+<script>
+var KEY = 'zedgehost_expenses_v1';
+var SEED = [
+  { id: 'seed1', date: '2026-11-11', cat: 'Ads',    amount: 6.99,   note: 'Meta Ads 11 Nov, 0 conversations', recurring: false },
+  { id: 'seed2', date: '2026-11-13', cat: 'Ads',    amount: 847.76, note: 'Meta Ads 13 Nov', recurring: false },
+  { id: 'seed3', date: '2026-11-14', cat: 'Ads',    amount: 830.99, note: 'Meta Ads 14 Nov, 12 WhatsApp conversations', recurring: false },
+  { id: 'seed4', date: '2026-11-15', cat: 'Ads',    amount: 143.72, note: 'Meta Ads 15 Nov morning, 3 WhatsApp conversations', recurring: false },
+  { id: 'seed5', date: '2026-11-01', cat: 'Server', amount: 850,    note: 'Server monthly Rs 850 (server name not confirmed yet)', recurring: true }
+];
+var expenses = [];
+var editingId = null;
+
+function load() {
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) { expenses = JSON.parse(raw); return; }
+  } catch (e) {}
+  expenses = SEED.slice();
+  save();
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(expenses)); } catch (e) {}
+}
+function fmt(n) {
+  return 'Rs ' + Number(n).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtDate(d) {
+  var parts = d.split('-');
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return parseInt(parts[2], 10) + ' ' + months[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+}
+function monthKey(d) { return d.slice(0, 7); }
+function monthLabel(k) {
+  var p = k.split('-');
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return months[parseInt(p[1], 10) - 1] + ' ' + p[0];
+}
+function catBadge(c) {
+  if (c === 'Ads') return 'badge-ads';
+  if (c === 'Server') return 'badge-server';
+  return 'badge-other';
+}
+function render() {
+  var total = 0, byCat = { Ads: 0, Server: 0, Other: 0 }, byMonth = {};
+  expenses.forEach(function (e) {
+    total += e.amount;
+    byCat[e.cat] = (byCat[e.cat] || 0) + e.amount;
+    byMonth[monthKey(e.date)] = (byMonth[monthKey(e.date)] || 0) + e.amount;
+  });
+  document.getElementById('totalAll').textContent = fmt(total);
+  document.getElementById('totalAds').textContent = fmt(byCat.Ads || 0);
+  document.getElementById('totalServer').textContent = fmt(byCat.Server || 0);
+  document.getElementById('totalOther').textContent = fmt(byCat.Other || 0);
+  document.getElementById('entryCount').textContent = expenses.length + ' entries';
+  var mk = Object.keys(byMonth).sort().reverse();
+  document.getElementById('monthList').innerHTML = mk.length ? mk.map(function (k) {
+    return '<div class="month-row"><span>' + monthLabel(k) + '</span><b>' + fmt(byMonth[k]) + '</b></div>';
+  }).join('') : '<div class="empty">Abhi koi kharcha nahi</div>';
+  var sorted = expenses.slice().sort(function (a, b) { return b.date.localeCompare(a.date); });
+  document.getElementById('entryList').innerHTML = sorted.length ? sorted.map(function (e) {
+    return '<div class="entry"><div><div><b>' + fmtDate(e.date) + '</b>' +
+      '<span class="badge ' + catBadge(e.cat) + '">' + e.cat + '</span>' +
+      (e.recurring ? '<span class="badge badge-recur">Recurring</span>' : '') + '</div>' +
+      (e.note ? '<div class="note">' + esc(e.note) + '</div>' : '') + '</div>' +
+      '<div style="text-align:right"><div class="amt">' + fmt(e.amount) + '</div>' +
+      '<div class="actions" style="margin-top:6px"><button class="btn-edit" onclick="startEdit(\'' + e.id + '\')">Edit</button>' +
+      '<button class="btn-del" onclick="delExpense(\'' + e.id + '\')">Delete</button></div></div></div>';
+  }).join('') : '<div class="empty">Abhi koi kharcha nahi</div>';
+}
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function saveExpense(ev) {
+  ev.preventDefault();
+  var e = {
+    id: editingId || ('e' + Date.now()),
+    date: document.getElementById('fDate').value,
+    cat: document.getElementById('fCat').value,
+    amount: parseFloat(document.getElementById('fAmount').value) || 0,
+    note: document.getElementById('fNote').value.trim(),
+    recurring: document.getElementById('fRecur').checked
+  };
+  if (editingId) {
+    var i = expenses.findIndex(function (x) { return x.id === editingId; });
+    if (i >= 0) expenses[i] = e;
+  } else {
+    expenses.push(e);
+  }
+  save(); render(); resetForm();
+  return false;
+}
+function startEdit(id) {
+  var e = expenses.find(function (x) { return x.id === id; });
+  if (!e) return;
+  editingId = id;
+  document.getElementById('fDate').value = e.date;
+  document.getElementById('fCat').value = e.cat;
+  document.getElementById('fAmount').value = e.amount;
+  document.getElementById('fNote').value = e.note || '';
+  document.getElementById('fRecur').checked = !!e.recurring;
+  document.getElementById('formTitle').textContent = 'Kharcha edit karein';
+  document.getElementById('saveBtn').textContent = 'Save Changes';
+  document.getElementById('cancelBtn').style.display = 'inline-block';
+  document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+}
+function cancelEdit() { resetForm(); }
+function resetForm() {
+  editingId = null;
+  document.getElementById('expenseForm').reset();
+  document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('formTitle').textContent = 'Naya kharcha add karein';
+  document.getElementById('saveBtn').textContent = 'Add Expense';
+  document.getElementById('cancelBtn').style.display = 'none';
+}
+function delExpense(id) {
+  if (!confirm('Ye kharcha delete kar dein?')) return;
+  expenses = expenses.filter(function (x) { return x.id !== id; });
+  save(); render();
+}
+function scrollToForm() {
+  document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('fAmount').focus();
+}
+load();
+resetForm();
+render();
+</script>
+</body>
+</html>
